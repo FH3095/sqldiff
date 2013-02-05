@@ -6,10 +6,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import eu._4fh.sqldiff.Main;
 import eu._4fh.sqldiff.data.Column;
+import eu._4fh.sqldiff.data.SqlType;
 import eu._4fh.sqldiff.data.Table;
 
 public class CompareStruct {
@@ -71,19 +73,22 @@ public class CompareStruct {
 	}
 
 	private void createTable(Table table) {
-		// TODO Auto-generated method stub
-		/*
-		 * CREATE TABLE `test_sqldiff`.`dropIt` ( `id` INT UNSIGNED NOT NULL
-		 * AUTO_INCREMENT PRIMARY KEY , `data` CHAR( 3 ) NOT NULL DEFAULT 'aaa'
-		 * )
-		 */
 		sqlChange.append("CREATE TABLE ").append(table.getName()).append(" (")
 				.append(Main.nl);
-		Map<String, Column> columns = table.getColumns();
-		for (Column column : columns.values()) {
+		List<Column> columns = table.getColumns();
+		for (Column column : columns) {
 			sqlChange.append(column.getName()).append(" ")
 					.append(column.getTypeName()).append(" ");
-			// !TODO: Size of column
+
+			SqlType type = SqlType.findByJavaSqlType(column.getType());
+			if (type != null && type.needSize) {
+				sqlChange.append("( ").append(column.getSize());
+				if (type.needDecimalSize) {
+					sqlChange.append(" , ").append(column.getDecimalDigits());
+				}
+				sqlChange.append(" ) ");
+			}
+
 			sqlChange
 					.append(column.isNullable() ? "NULL" : "NOT NULL")
 					.append(" ")
@@ -92,7 +97,24 @@ public class CompareStruct {
 							+ column.getDefaultValue() + "'" : "").append(" ");
 			sqlChange.append(Main.nl);
 		}
-		sqlChange.append(");").append(Main.nl).append(Main.nl);
+		sqlChange.append(");").append(Main.nl);
+
+		// Primary Key
+		if (table.getPrimaryKey() != null) {
+			sqlChange.append("ALTER TABLE ").append(table.getName())
+					.append(" ADD PRIMARY KEY (");
+			boolean first = true;
+			for (Column column : table.getPrimaryKey().getColumns()) {
+				if (!first) {
+					sqlChange.append(" , ");
+				}
+				first = false;
+				sqlChange.append(column.getName());
+			}
+			sqlChange.append(");").append(Main.nl);
+		}
+
+		sqlChange.append(Main.nl);
 	}
 
 	private void compareTables(Table table, Table table2) {

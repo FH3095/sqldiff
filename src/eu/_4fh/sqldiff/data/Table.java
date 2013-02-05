@@ -3,17 +3,16 @@ package eu._4fh.sqldiff.data;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 public class Table {
 	private String name;
 	private String catalog;
 	private String schema;
-	private Map<String, Column> columns;
+	private List<Column> columns;
 	private Index primaryKey;
 
 	public Table(DatabaseMetaData meta, ResultSet tableDefinition)
@@ -22,15 +21,17 @@ public class Table {
 		catalog = tableDefinition.getString(1);
 		schema = tableDefinition.getString(2);
 
-		columns = new HashMap<String, Column>();
+		columns = new LinkedList<Column>();
 
 		ResultSet rs = meta.getColumns(catalog, null, name, "");
 		while (rs.next()) {
 			Column column = new Column(rs);
-			columns.put(column.getName(), column);
+			columns.add(column);
 		}
 		rs.close();
-		columns = Collections.unmodifiableMap(columns);
+		columns = new ArrayList<Column>(columns);
+		Collections.sort(columns);
+		columns = Collections.unmodifiableList(columns);
 
 		rs = meta.getPrimaryKeys(catalog, null, name);
 		List<Column> pkColumns = new LinkedList<Column>();
@@ -39,14 +40,21 @@ public class Table {
 			if (pkName != null) {
 				if (!pkName.equals(rs.getString(6))) {
 					throw new RuntimeException(
-							"Primary Key has different names? oO Old=" + pkName
+							"Primary Key has different names? Old=" + pkName
 									+ " New=" + rs.getString(6));
 				}
 			}
 			pkName = rs.getString(6);
-			pkColumns.add(columns.get(rs.getString(4)));
+			pkColumns.add(getColumn(rs.getString(4)));
 		}
-		primaryKey = new Index(pkName, pkColumns.toArray(new Column[1]));
+		rs.close();
+
+		Collections.sort(pkColumns);
+
+		primaryKey = null;
+		if (!pkColumns.isEmpty()) {
+			primaryKey = new Index(pkName, pkColumns.toArray(new Column[1]));
+		}
 	}
 
 	public String getName() {
@@ -66,7 +74,17 @@ public class Table {
 		return columns.get(i);
 	}
 
-	public Map<String, Column> getColumns() {
+	public Column getColumn(String name) {
+		for (Column column : columns) {
+			if (name.equals(column.getName())) {
+				return column;
+			}
+		}
+		throw new IndexOutOfBoundsException("Can't find column '" + name
+				+ "' in table '" + getName() + "'.");
+	}
+
+	public List<Column> getColumns() {
 		return columns;
 	}
 

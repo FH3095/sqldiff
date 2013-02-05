@@ -1,7 +1,8 @@
 package eu._4fh.sqldiff.data;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
+import java.util.Collections;
 import java.util.List;
 
 public class Index {
@@ -10,7 +11,16 @@ public class Index {
 
 	public Index(String name, Column[] columns) {
 		this.name = name;
-		this.columns = new LinkedList<Column>(Arrays.asList(columns));
+		this.columns = Collections.unmodifiableList(new ArrayList<Column>(
+				Arrays.asList(columns)));
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public List<Column> getColumns() {
+		return columns;
 	}
 
 	@Override
