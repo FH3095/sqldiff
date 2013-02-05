@@ -27,12 +27,8 @@ public class Config {
 		props.put("sql2Pass", "");
 		try {
 			props.store(new FileOutputStream(configFile), "");
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new RuntimeException("Can't write default-Config.", e);
 		}
 	}
 
@@ -41,11 +37,9 @@ public class Config {
 		try {
 			props.load(new FileInputStream(configFile));
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new RuntimeException("Config-File is missing.", e);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new RuntimeException("Can't read Config-File.", e);
 		}
 	}
 
